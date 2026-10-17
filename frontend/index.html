@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AI 인테리어 플래너</title>
+  <link rel="stylesheet" href="style.css">
+  <script type="importmap">
+    { "imports": { "three": "./vendor/three.module.min.js" } }
+  </script>
+</head>
+<body>
+<header class="top">
+  <div class="brand">AI 인테리어 플래너</div>
+  <div id="ai-status" class="badge">확인 중…</div>
+</header>
+
+<main class="layout">
+  <aside class="panel">
+    <!-- 1. 도면 -->
+    <section class="step" id="step-plan">
+      <h2><span class="num">1</span>도면</h2>
+      <label class="drop" id="plan-drop">
+        <input type="file" id="plan-file" accept="image/*" hidden>
+        <img id="plan-preview" alt="" hidden>
+        <span id="plan-drop-text">평면도 사진을 끌어다 놓거나 클릭해서 선택</span>
+      </label>
+      <input id="plan-hint" placeholder="참고 정보 (선택): 예) 전용 84㎡, 거실 가로 5.4m">
+      <div class="row">
+        <button id="btn-analyze" class="primary">AI로 도면 판독</button>
+        <button id="btn-sample">샘플 도면</button>
+      </div>
+      <details id="rooms-box" hidden>
+        <summary>판독 결과 확인·수정 <span id="plan-meta" class="muted"></span></summary>
+        <p class="muted small" id="plan-note"></p>
+        <table class="rooms">
+          <thead><tr><th>이름</th><th>종류</th><th>x</th><th>y</th><th>가로</th><th>세로</th><th></th></tr></thead>
+          <tbody id="rooms-body"></tbody>
+        </table>
+        <button id="btn-add-room" class="small">+ 방 추가</button>
+        <span class="muted small">단위 mm</span>
+      </details>
+    </section>
+
+    <!-- 2. 가족 -->
+    <section class="step" id="step-family">
+      <h2><span class="num">2</span>가족 구성과 요청 사항</h2>
+      <div class="chips" id="family-presets">
+        <button data-preset="single">1인 가구</button>
+        <button data-preset="newlywed">신혼부부</button>
+        <button data-preset="kids">아이 있는 4인</button>
+        <button data-preset="three-gen">3대 가족</button>
+      </div>
+      <div id="members"></div>
+      <div class="row">
+        <input id="member-role" list="role-list" placeholder="구성원 (예: 아들)">
+        <input id="member-age" type="number" min="0" max="120" placeholder="나이">
+        <button id="btn-add-member">추가</button>
+      </div>
+      <datalist id="role-list">
+        <option>아빠</option><option>엄마</option><option>남편</option><option>아내</option><option>아들</option>
+        <option>딸</option><option>할머니</option><option>할아버지</option><option>강아지</option><option>고양이</option>
+      </datalist>
+      <textarea id="requirements" rows="3" placeholder="특별 요청 사항: 예) 남편이 재택근무를 해서 조용한 업무 공간이 필요해요. 거실은 넓게 쓰고 싶어요."></textarea>
+      <select id="style">
+        <option value="">스타일 (선택 안 함)</option>
+        <option>모던 미니멀</option><option>내추럴 우드</option><option>북유럽</option>
+        <option>미드센추리</option><option>호텔식 클래식</option><option>화이트 &amp; 그레이</option>
+      </select>
+    </section>
+
+    <!-- 3. 가구 -->
+    <section class="step" id="step-furniture">
+      <h2><span class="num">3</span>가구·가전</h2>
+      <h3>보유하거나 구매할 실제 제품</h3>
+      <div class="furn-form">
+        <label class="thumb-drop">
+          <input type="file" id="furn-file" accept="image/*" hidden>
+          <img id="furn-preview" alt="" hidden><span id="furn-drop-text">제품 사진</span>
+        </label>
+        <div class="furn-fields">
+          <input id="furn-name" placeholder="제품명 (예: 삼성 비스포크 냉장고)">
+          <div class="row dims">
+            <input id="furn-w" type="number" placeholder="가로">
+            <input id="furn-d" type="number" placeholder="깊이">
+            <input id="furn-h" type="number" placeholder="높이">
+          </div>
+          <select id="furn-room"><option value="">배치할 방: 자동</option></select>
+        </div>
+      </div>
+      <button id="btn-add-furn">제품 등록</button>
+      <ul id="furn-list" class="furn-list"></ul>
+
+      <h3>제품 없이 필요한 것만 요청</h3>
+      <div class="chips" id="request-chips"></div>
+      <div class="row">
+        <input id="request-input" placeholder="예: 안마의자, 캣타워 (쉼표로 구분)">
+        <button id="btn-add-request">추가</button>
+      </div>
+      <p class="muted small">아무것도 넣지 않으면 가족 구성에 맞춰 필요한 가구를 알아서 고릅니다.</p>
+    </section>
+
+    <!-- 4. 생성 -->
+    <section class="step" id="step-run">
+      <h2><span class="num">4</span>배치 생성</h2>
+      <div class="row">
+        <button id="btn-layout" class="primary big">배치 만들기</button>
+        <select id="engine">
+          <option value="auto">AI 우선</option>
+          <option value="rule">규칙 엔진만</option>
+        </select>
+      </div>
+      <div id="result" hidden>
+        <p id="summary"></p>
+        <ul id="warnings" class="warnings"></ul>
+      </div>
+    </section>
+  </aside>
+
+  <section class="stage">
+    <nav class="tabs">
+      <button data-tab="plan2d" class="active">2D 배치도</button>
+      <button data-tab="view3d">3D·영상</button>
+    </nav>
+    <div class="tab-body" id="tab-plan2d">
+      <canvas id="plan-canvas"></canvas>
+      <div class="hint">가구를 끌어서 옮기고, 선택 후 <kbd>R</kbd> 회전 · <kbd>Delete</kbd> 삭제</div>
+      <div id="empty" class="empty">1단계에서 도면을 올리거나 샘플 도면을 불러오세요.</div>
+    </div>
+    <div class="tab-body" id="tab-view3d" hidden>
+      <div id="three-wrap"></div>
+      <div class="video-bar">
+        <button id="btn-play">▶ 영상 미리보기</button>
+        <button id="btn-record" class="primary">● 영상 만들기</button>
+        <label class="small"><input type="checkbox" id="opt-labels" checked> 이름표</label>
+        <span id="rec-status" class="muted small"></span>
+      </div>
+      <div id="video-out" hidden>
+        <video id="video" controls playsinline></video>
+        <div class="row">
+          <a id="dl-webm" class="button" download="interior.webm">WebM 저장</a>
+          <button id="btn-mp4">MP4로 변환해 저장</button>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<div id="toast" class="toast" hidden></div>
+<script type="module" src="app.js"></script>
+</body>
+</html>
