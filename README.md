@@ -75,6 +75,15 @@ tests/              pytest (배치 엔진, API, Claude 요청 모킹)
 python -m pytest -q
 ```
 
+### 도면 판독 정확도 점검 (API 키 필요)
+
+정답 치수를 아는 샘플 도면을 이미지로 그려 판독시키고, 방별 IoU와 치수 오차를 채점합니다.
+
+```bash
+python -m tools.floorplan_eval run                    # 샘플 도면(docs/test_floorplan.png)으로 채점
+python -m tools.floorplan_eval run 내도면.jpg --hint "전용 84㎡"   # 실제 도면 판독 결과 출력
+```
+
 ## 한계와 다음 단계
 
 - 방을 직사각형으로 단순화하므로 사선 벽이나 곡선 벽은 근사치로 표현됩니다.
